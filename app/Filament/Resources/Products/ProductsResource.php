@@ -9,6 +9,7 @@ use App\Filament\Resources\Products\Schemas\ProductsForm;
 use App\Filament\Resources\Products\Tables\ProductsTable;
 use App\Models\Products;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -18,8 +19,10 @@ class ProductsResource extends Resource
 {
     protected static ?string $model = Products::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ClipboardDocumentCheck;
+    protected static string | UnitEnum | null $navigationGroup = 'Product Management';
+    protected static ?string $navigationLabel = 'Products';
+    protected static ?int $navigationSort = 1;
     public static function form(Schema $schema): Schema
     {
         return ProductsForm::configure($schema);
@@ -34,6 +37,7 @@ class ProductsResource extends Resource
     {
         return [
             //
+            RelationManagers\PricePerCodeRelationManager::class,
         ];
     }
 

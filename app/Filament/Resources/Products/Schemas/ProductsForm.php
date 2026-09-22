@@ -71,37 +71,42 @@ class ProductsForm
                                 ->prefix('₱'),
                          ]),
                     
+                    Grid::make(2)
+                         ->schema([
+                            Select::make('supplier_id')
+                                ->label('Supplier')
+                                ->options(Supplier::all()->pluck('company_name', 'id'))
+                                ->searchable()
+                                ->required()
+                                ->loadingMessage('Loading Supplier...'),
+
+                            Select::make('warehouse_id')
+                                ->label('Warehouse')
+                                ->options(Warehouse::all()->pluck('warehouse_name', 'id'))
+                                ->searchable()
+                                ->required()
+                                ->loadingMessage('Loading Warehouse...'),
+                        ]),
                     
-                    Select::make('supplier_id')
-                        ->label('Supplier')
-                        ->options(Supplier::all()->pluck('company_name', 'id'))
+                     Grid::make(3)
+                         ->schema([
+                            TextInput::make('reorder_level')
+                                ->label('Reorder Level')
+                                ->numeric(),
+
+                            TextInput::make('weight')
+                                ->label('Weight(kg)')
+                                ->numeric(),
+
+                            Select::make('status')
+                                ->label('Status')
+                                ->required()
+                                ->options([
+                                    'Active' => 'Active',
+                                    'Inactive' => 'Inactive',
+                                ])
                         ->searchable()
-                        ->required()
-                        ->loadingMessage('Loading Supplier...'),
-
-                    Select::make('warehouse_id')
-                        ->label('Warehouse')
-                        ->options(Warehouse::all()->pluck('warehouse_name', 'id'))
-                        ->searchable()
-                        ->required()
-                        ->loadingMessage('Loading Warehouse...'),
-
-                    TextInput::make('reorder_level')
-                        ->label('Reorder Level')
-                        ->numeric(),
-
-                    TextInput::make('weight')
-                        ->label('Weight(kg)')
-                        ->numeric(),
-
-                    Select::make('status')
-                        ->label('Status')
-                        ->required()
-                        ->options([
-                            'Active' => 'Active',
-                            'Inactive' => 'Inactive',
-                        ])
-                        ->searchable()
+                        ]),
                  ])->columnSpanFull()
                 
             ]);

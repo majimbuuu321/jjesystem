@@ -17,4 +17,12 @@ class PricePerCode extends Model
         'created_by',
         'updated_by',
     ];
+
+    public function priceCode(){
+        return $this->belongsTo(PriceCode::class, 'price_code_id', 'id');
+    }
+
+    public function UOM(){
+        return $this->belongsTo(UnitOfMeasurement::class, 'units_id', 'id');
+    }
 }

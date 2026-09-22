@@ -3,7 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 class Products extends Model
 {
     //
@@ -23,4 +24,14 @@ class Products extends Model
         'created_by',
         'updated_by',
     ];
+
+     public function PricePerCode(): HasMany
+    {
+        return $this->hasMany(PricePerCode::class);
+    }
+
+    // public function CostHistory(): HasMany
+    // {
+    //     return $this->hasMany(CostHistory::class);
+    // }
 }

@@ -24,6 +24,7 @@ class ProductCategoryResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Tag;
     protected static string | UnitEnum | null $navigationGroup = 'Product Management';
     protected static ?string $navigationLabel = 'Product Category';
+    protected static ?int $navigationSort = 2;
     public static function form(Schema $schema): Schema
     {
         return $schema

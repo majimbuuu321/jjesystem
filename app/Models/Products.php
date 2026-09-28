@@ -30,8 +30,8 @@ class Products extends Model
         return $this->hasMany(PricePerCode::class);
     }
 
-    // public function CostHistory(): HasMany
-    // {
-    //     return $this->hasMany(CostHistory::class);
-    // }
+    public function unitCostHistories(): HasMany
+    {
+        return $this->hasMany(UnitCostHistory::class);
+    }
 }

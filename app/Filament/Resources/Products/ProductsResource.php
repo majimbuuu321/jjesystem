@@ -38,6 +38,7 @@ class ProductsResource extends Resource
         return [
             //
             RelationManagers\PricePerCodeRelationManager::class,
+            RelationManagers\UnitCostHistoriesRelationManager::class,
         ];
     }
 

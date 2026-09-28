@@ -24,7 +24,7 @@ use Filament\Forms\Components\DatePicker;
 class PricePerCodeRelationManager extends RelationManager
 {
     protected static string $relationship = 'PricePerCode';
-
+    protected static ?string $title = 'Price per Code';
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -38,7 +38,7 @@ class PricePerCodeRelationManager extends RelationManager
                                 ->required()
                                 ->maxDate(now()),
                          ]),
-                         Grid::make(3)
+                         Grid::make(2)
                          ->schema([
                             TextInput::make('unit_price')
                                 ->label('Unit Price')
@@ -52,13 +52,13 @@ class PricePerCodeRelationManager extends RelationManager
                                 ->required()
                                 ->loadingMessage('Loading Unit of Measurement...'),
 
-                            Select::make('price_code_id')
-                                ->label('Price Code')
-                                ->preload()
-                                ->options(PriceCode::where('status', 'Active')->pluck('price_code', 'id'))
-                                ->searchable()
-                                ->required()
-                                ->loadingMessage('Loading Price Code...'),
+                            // Select::make('price_code_id')
+                            //     ->label('Price Code')
+                            //     ->preload()
+                            //     ->options(PriceCode::where('status', 'Active')->pluck('price_code', 'id'))
+                            //     ->searchable()
+                            //     ->required()
+                            //     ->loadingMessage('Loading Price Code...'),
                          ]),
                     ])->columnSpanFull()
             ]);
@@ -70,8 +70,7 @@ class PricePerCodeRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('priceCode.price_code')
                     ->label('Price Code')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(),
 
                 TextColumn::make('price_date')
                 ->label('Price Date')
@@ -85,22 +84,35 @@ class PricePerCodeRelationManager extends RelationManager
                     ->label('Unit of Measurement')
                     ->sortable(),
 
+                TextColumn::make('status')
+                    ->badge()
+                    ->label('Status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'Active' => 'success',
+                        'Inactive' => 'danger',
+                    }),
             ])
             ->filters([
                 //
             ])
             ->headerActions([
-                CreateAction::make(),
+                //CreateAction::make(),
                 
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                ->after(function ($record) {
+                    $record->update([
+                        'updated_by' => auth()->id(),
+                        'updated_at' => now()
+                    ]);
+                }),
+                //DeleteAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                // BulkActionGroup::make([
+                //     DeleteBulkAction::make(),
+                // ]),
             ]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\UnitOfMeasurements;
 use App\Filament\Resources\UnitOfMeasurements\Pages\ManageUnitOfMeasurements;
 use App\Models\UnitOfMeasurement;
 use BackedEnum;
+use UnitEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -20,8 +21,10 @@ class UnitOfMeasurementResource extends Resource
 {
     protected static ?string $model = UnitOfMeasurement::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Scale;
+    protected static string | UnitEnum | null $navigationGroup = 'Product Management';
+    protected static ?string $navigationLabel = 'Unit of Measurement';
+    protected static ?int $navigationSort = 6;
     public static function form(Schema $schema): Schema
     {
         return $schema

@@ -23,17 +23,36 @@ class PurchaseOrderForm
                                 TextInput::make('purchase_order_no')
                                 ->label('PO Number')
                                 ->default(function () {
-                                    $year = now()->year;
-                            
-                                    $lastPo = PurchaseOrderHeader::where('purchase_order_no', 'like', "PO-{$year}-%")
+                                       $year = now()->year;
+
+                                        $lastPo = PurchaseOrderHeader::where(
+                                            'purchase_order_no',
+                                            'like',
+                                            "PO-{$year}-%"
+                                        )
                                         ->orderByDesc('id')
                                         ->first();
+
+                                        $counter = $lastPo
+                                            ? ((int) str_replace(
+                                                "PO-{$year}-",
+                                                '',
+                                                $lastPo->purchase_order_no
+                                            )) + 1
+                                            : 1;
+
+                                        return "PO-{$year}-{$counter}";
+                                    // $year = now()->year;
                             
-                                    $counter = $lastPo
-                                        ? ((int) str_replace("PO-{$year}-", '', $lastPo->po_number)) + 1
-                                        : 1;
+                                    // $lastPo = PurchaseOrderHeader::where('purchase_order_no', 'like', "PO-{$year}-%")
+                                    //     ->orderByDesc('id')
+                                    //     ->first();
                             
-                                    return "PO-{$year}-{$counter}";
+                                    // $counter = $lastPo
+                                    //     ? ((int) str_replace("PO-{$year}-", '', $lastPo->po_number)) + 1
+                                    //     : 1;
+                            
+                                    // return "PO-{$year}-{$counter}";
                                 })
                                 ->readOnly()
                                 ->required(),

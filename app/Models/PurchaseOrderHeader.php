@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Relations\HasMany;
 class PurchaseOrderHeader extends Model
 {
     //
@@ -31,4 +31,10 @@ class PurchaseOrderHeader extends Model
     public function paymentTerms(){
         return $this->belongsTo(PaymentTerms::class, 'payment_terms_id', 'id');
     }
+
+    public function PurchaseOrderDetail(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderDetail::class);
+    }
+
 }

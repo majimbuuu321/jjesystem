@@ -40,6 +40,7 @@ class PurchaseOrderResource extends Resource
     {
         return [
             //
+            RelationManagers\PurchaseOrderDetailRelationManager::class,
         ];
     }
 

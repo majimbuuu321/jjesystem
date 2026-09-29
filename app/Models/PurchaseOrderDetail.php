@@ -24,4 +24,14 @@ class PurchaseOrderDetail extends Model
         'remarks',
     ];
 
+    public function priceCode(){
+        return $this->belongsTo(PriceCode::class, 'price_code_id', 'id');
+    }
+    public function product(){
+        return $this->belongsTo(Products::class, 'products_id', 'id');
+    }
+    public function unitOfMeasurement(){
+        return $this->belongsTo(UnitOfMeasurement::class, 'uom_id', 'id');
+    }
+
 }

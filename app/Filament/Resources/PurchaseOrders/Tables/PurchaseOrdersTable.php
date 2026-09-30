@@ -5,8 +5,10 @@ namespace App\Filament\Resources\PurchaseOrders\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Torgodly\Html2Media\Actions\Html2MediaAction;
 class PurchaseOrdersTable
 {
     public static function configure(Table $table): Table
@@ -44,7 +46,27 @@ class PurchaseOrdersTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                ViewAction::make(),
+                EditAction::make()
+                ->visible(function ($record) {
+                    return $record->status != 'Posted';
+                }),
+                Html2MediaAction::make('print')
+                    ->label('Print')
+                    // ->savePdf()
+                    // ->preview()
+                    // ->orientation('landscape')
+                    ->format('a4', 'mm')
+                    ->color('warning')
+                    ->icon('heroicon-o-printer')
+                    ->filename(fn ($record) => 'JJE-PO-' . $record->id . '.pdf')
+                    ->content(fn($record) => view('pdf.purchase_order', [
+                        'record' => $record,
+                        'items' => $record->PurchaseOrderDetail,
+                        'products' => $record->PurchaseOrderDetail->map(fn($item) => $item->product),
+                        'uom' => $record->PurchaseOrderDetail->map(fn($item) => $item->unitOfMeasurement),
+                        // 'price_code' => $record->PurchaseOrderDetail->map(fn($item) => $item->priceCode),
+                ])),
             ])
             ->toolbarActions([
                 // BulkActionGroup::make([

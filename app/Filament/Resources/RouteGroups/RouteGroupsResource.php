@@ -82,12 +82,12 @@ class RouteGroupsResource extends Resource
                     $data['updated_by'] = auth()->id();
                     return $data;
                 }),
-                DeleteAction::make(),
+                //DeleteAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                // BulkActionGroup::make([
+                //     DeleteBulkAction::make(),
+                // ]),
             ]);
     }
 

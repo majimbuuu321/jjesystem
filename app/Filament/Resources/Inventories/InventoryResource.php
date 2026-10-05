@@ -39,6 +39,7 @@ class InventoryResource extends Resource
     {
         return [
             //
+            RelationManagers\InventoryDetailRelationManager::class,
         ];
     }
 

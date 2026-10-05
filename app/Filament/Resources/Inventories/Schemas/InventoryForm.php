@@ -38,10 +38,22 @@ class InventoryForm
                         ->schema([
                             TextInput::make('document_no')
                                 ->required()
-                                ->label('Document No.'),
+                                ->label('Document No.')
+                                ->dehydrateStateUsing(function (?string $state): ?string {
+                                if ($state === null) {
+                                        return '';
+                                        }
+                                    return strtoupper($state);
+                                }),
 
                             TextInput::make('plate_no')
-                                ->label('Plate No.'),
+                                ->label('Plate No.')
+                                ->dehydrateStateUsing(function (?string $state): ?string {
+                                if ($state === null) {
+                                        return '';
+                                        }
+                                    return strtoupper($state);
+                                }),
 
                                 Select::make('inventory_type_id')
                                 ->options(InventoryType::all()->pluck('inventory_type', 'id'))
@@ -73,7 +85,7 @@ class InventoryForm
 
                                         if($transferFrom->first()->inventory_from == "WAREHOUSE")
                                         {
-                                            return Warehouse::where('status', 'Active')->pluck('warehouse_name', 'warehouse_name');
+                                            return Warehouse::where('status', 'Active')->pluck('warehouse_name', 'id');
                                         }
                                         else{
                                             return Supplier::where('status', 'Active')->pluck('company_name', 'company_name');
@@ -99,7 +111,7 @@ class InventoryForm
 
                                         if($transferTo->first()->inventory_to == "WAREHOUSE")
                                         {
-                                            return Warehouse::where('status', 'Active')->pluck('warehouse_name', 'warehouse_name');
+                                            return Warehouse::where('status', 'Active')->pluck('warehouse_name', 'id');
                                         }
                                         else{
                                             return Supplier::where('status', 'Active')->pluck('company_name', 'company_name');

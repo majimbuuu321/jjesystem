@@ -47,4 +47,6 @@ class InventoryHeader extends Model
     {
         return $this->hasMany(InventoryDetail::class);
     }
+
+   
 }

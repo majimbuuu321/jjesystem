@@ -14,7 +14,12 @@ class ManageInventoryTypes extends ManageRecords
     {
         return [
             CreateAction::make()
-            ->label('Add Inventory Type'),
+            ->label('Add Inventory Type')
+            ->createAnother(false)
+            ->mutateFormDataUsing(function (array $data): array {
+                    $data['created_by'] = auth()->id();
+                    return $data;
+            }),
         ];
     }
 }

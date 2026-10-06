@@ -13,7 +13,13 @@ class ManageCustomers extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+            ->createAnother(false)
+            ->label('Add Customer')
+            ->mutateFormDataUsing(function (array $data): array {
+                    $data['created_by'] = auth()->id();
+                    return $data;
+            }),
         ];
     }
 }

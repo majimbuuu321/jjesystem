@@ -16,4 +16,6 @@ class InventoryPerWarehouse extends Model
         'quantity',
         'updated_at',
     ];
+
+    
 }

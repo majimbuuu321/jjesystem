@@ -34,4 +34,6 @@ class Products extends Model
     {
         return $this->hasMany(UnitCostHistory::class);
     }
+
+    
 }

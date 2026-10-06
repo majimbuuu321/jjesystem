@@ -1,21 +1,21 @@
 <?php
 
-namespace App\Filament\Resources\PriceCodes\Pages;
+namespace App\Filament\Resources\InvoiceTypes\Pages;
 
-use App\Filament\Resources\PriceCodes\PriceCodeResource;
+use App\Filament\Resources\InvoiceTypes\InvoiceTypeResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 
-class ManagePriceCodes extends ManageRecords
+class ManageInvoiceTypes extends ManageRecords
 {
-    protected static string $resource = PriceCodeResource::class;
+    protected static string $resource = InvoiceTypeResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
             CreateAction::make()
             ->createAnother(false)
-            ->label('Add Price Code')
+            ->label('Add Invoice Type')
             ->mutateFormDataUsing(function (array $data): array {
                     $data['created_by'] = auth()->id();
                     return $data;

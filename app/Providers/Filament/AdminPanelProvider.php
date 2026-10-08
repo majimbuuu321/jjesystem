@@ -19,6 +19,10 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Support\Enums\Width;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Joaopaulolndev\FilamentEditProfile\FilamentEditProfilePlugin;
+use Filament\Navigation\MenuItem;
+use Joaopaulolndev\FilamentEditProfile\Pages\EditProfilePage;
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
@@ -28,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->globalSearch(false)
             ->colors([
                 'primary' => Color::Blue,
                 'secondary' =>Color::hex('#5B6770')
@@ -57,6 +62,22 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ])
+             ->plugins([
+                FilamentShieldPlugin::make(),
+                FilamentEditProfilePlugin::make()
+                ->slug('profile')
+                ->setTitle('My Profile')
+                ->setNavigationLabel('My Profile')
+                ->setIcon('heroicon-o-user')
+                ->shouldRegisterNavigation(false),
+            ])
+            ->userMenuItems([
+                'profile' => MenuItem::make()
+                    ->label('Edit Profile')
+                    ->url(fn (): string => EditProfilePage::getUrl())
+                    ->icon('heroicon-m-user-circle'),
             ]);
+            
     }
 }

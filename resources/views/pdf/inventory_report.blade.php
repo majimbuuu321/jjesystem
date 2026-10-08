@@ -6,8 +6,21 @@
     <title>Inventory Report</title>
 
     <style>
-        @page {
-            margin: 25px;
+         @page {
+        size: A4;
+        margin: 12mm 18mm 15mm 18mm;
+        }
+
+        @media print {
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+            };
+            * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            }
         }
 
         body {
@@ -283,6 +296,12 @@
     </table>
 
 </div>
+
+ <script>
+        window.onload = function () {
+            window.print();
+        };
+    </script>
 
 </body>
 </html>

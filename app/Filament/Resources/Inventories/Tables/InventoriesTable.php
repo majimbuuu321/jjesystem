@@ -42,10 +42,7 @@ class InventoriesTable
             ])
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make()
-                ->visible(function ($record) {
-                    return $record->status != 'Posted';
-                }),
+                EditAction::make(),
                  Html2MediaAction::make('print')
                     ->label('Print')
                      ->color('warning')

@@ -31,4 +31,16 @@ class InvoiceDetail extends Model
     public function product(){
         return $this->belongsTo(Products::class, 'products_id', 'id');
     }
+
+     public function units(){
+        return $this->belongsTo(UnitOfMeasurement::class, 'uom_id', 'id');
+    }
+
+    public function invoiceHeader()
+    {
+        return $this->belongsTo(
+            InvoiceHeader::class,
+            'invoice_header_id'
+        );
+    }
 }

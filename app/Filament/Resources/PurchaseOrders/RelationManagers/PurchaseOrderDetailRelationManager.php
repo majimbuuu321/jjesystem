@@ -22,6 +22,8 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Resources\RelationManagers\RelationGroup;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 class PurchaseOrderDetailRelationManager extends RelationManager
 {
     protected static string $relationship = 'PurchaseOrderDetail';
@@ -44,51 +46,94 @@ class PurchaseOrderDetailRelationManager extends RelationManager
                             ->loadingMessage('Loading Products...')
                             ->reactive()
                             ->afterStateUpdated(function ($state, callable $set) {
+
+                                $set('unit_cost', null);
+                                $set('weight', null);
+                                $set('tag_weight', null);
+                                $set('quantity', null);
+                                $set('total_cost', null);
+                                $set('net_amount', null);
+                                $set('uom_id', null);
+
                                 $product = Products::find($state);
                                 if ($product) {
                                     $set('unit_cost', $product->unit_cost);
+                                    $set('weight', $product->weight);
                                 } else {
                                     $set('unit_cost', null);
+                                    $set('weight', null);
                                 }
                             }),
+
+                            
                         ]),
 
                         Grid::make(2)
+                        ->schema([
+
+                            Select::make('uom_id')
+                                ->relationship('unitOfMeasurement', 'unit_code')
+                                ->required()
+                                ->preload()
+                                ->searchable()
+                                ->label('Unit of Measurement')
+                                ->loadingMessage('Loading Unit of Measurement...'),
+
+                            TextInput::make('quantity')
+                                ->required()
+                                ->numeric()
+                                ->live(onBlur: true)
+                                ->minValue(0)
+                                ->label('Quantity')
+                                ->afterStateUpdated(function ($state, callable $set, callable $get)
+                                    {
+                                        if($get('unit_cost') == null || $get('unit_cost') == 0){
+                                            $set('unit_cost', null);
+                                        }
+                                        else{
+                                            $set('total_cost', $state * $get('unit_cost'));
+                                            $set('net_amount', $get('total_cost') - $get('discount_amount'));
+                                        }
+
+                                        // Calculate tag weight
+                                        if ($get('weight') == null || $get('weight') == 0) {
+                                            $set('weight', null);
+                                            $set('tag_weight', null);
+                                        } else {
+                                            $set(
+                                                'tag_weight',
+                                                $state * $get('weight')
+                                            );
+                                        }
+                                    }),
+                        ]),
+
+                Grid::make(2)
                 ->schema([
-
-                    Select::make('uom_id')
-                        ->relationship('unitOfMeasurement', 'unit_code')
-                        ->required()
-                        ->preload()
-                        ->searchable()
-                        ->label('Unit of Measurement')
-                        ->loadingMessage('Loading Unit of Measurement...'),
-
-                        TextInput::make('tag_weight')
+                    
+                    TextInput::make('weight')
                         ->numeric()
                         ->inputMode('decimal')
                         ->required()
-                        ->label('Weight (kg)'),
+                        ->readonly()
+                        ->label('Weight (kg)')
+                        ->afterStateHydrated(function (TextInput $component, $state, $record) {
+                            if (blank($state)) {
+                                $component->state($record?->product?->weight);
+                            }
+                        }),
+                    
+                    TextInput::make('tag_weight')
+                        ->numeric()
+                        ->inputMode('decimal')
+                        ->required()
+                        ->readonly()
+                        ->label('Total Weight (kg)'),
+                    
                 ]),
-                Grid::make(3)
+                Grid::make(2)
                 ->schema([
 
-                    TextInput::make('quantity')
-                        ->required()
-                        ->numeric()
-                        ->live(onBlur: true)
-                        ->minValue(0)
-                        ->label('Quantity')
-                        ->afterStateUpdated(function ($state, callable $set, callable $get)
-                            {
-                                if($get('unit_cost') == null || $get('unit_cost') == 0){
-                                    $set('unit_cost', null);
-                                }
-                                else{
-                                    $set('total_cost', $state * $get('unit_cost'));
-                                    $set('net_amount', $get('total_cost') - $get('discount_amount'));
-                                }
-                            }),
                     TextInput::make('unit_cost')
                         ->numeric()
                         ->live(onBlur: true)
@@ -117,38 +162,78 @@ class PurchaseOrderDetailRelationManager extends RelationManager
                 Grid::make(3)
                 ->schema([
                     TextInput::make('discount_rate')
-                        ->numeric()
-                        ->inputMode('decimal')
-                        ->live(onBlur: true)
-                        ->label('Discount Rate (%)')
-                        ->afterStateUpdated(function ($state, callable $set, callable $get)
-                            {
-                                if($get('total_cost') == null || $get('total_cost') == 0){
-                                    $set('discount_amount', null);
-                                    $set('net_amount', null);
-                                }
-                                else{
-                                    $set('net_amount', $get('total_cost') - ($state / 100 * $get('total_cost')));
-                                    $set('discount_amount', $state / 100 * $get('total_cost'));
-                                }
-                            }),
+                    ->label('Discount')
+                    ->placeholder('e.g. -100-10% or -10%-5%')
+                    ->live()
+                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+
+                        $totalCost = (float) ($get('total_cost') ?? 0);
+
+                        if (blank($state)) {
+                            $set('discount_amount', 0);
+                            $set('net_amount', $totalCost);
+
+                            return;
+                        }
+
+                        $expression = trim($state);
+
+                        // Split by "-"
+                        $discounts = preg_split('/\s*-\s*/', ltrim($expression, '-'));
+
+                        $amount = $totalCost;
+
+                        foreach ($discounts as $discount) {
+
+                            $discount = trim($discount);
+
+                            if ($discount === '') {
+                                continue;
+                            }
+
+                            // Percentage discount
+                            if (str_ends_with($discount, '%')) {
+
+                                $rate = (float) str_replace('%', '', $discount);
+
+                                $discountAmount = $amount * ($rate / 100);
+
+                            } else {
+
+                                // Fixed amount discount
+                                $discountAmount = (float) $discount;
+                            }
+
+                            // Apply discount
+                            $amount -= $discountAmount;
+                        }
+
+                        $discountAmount = $totalCost - $amount;
+
+                        $set('discount_amount', round($discountAmount,2));
+                        $set('net_amount', round($amount,2));
+                    }),
+
+                    // TextInput::make('discount_amount')
+                    //     ->numeric()
+                    //     ->inputMode('decimal')
+                    //     ->live(onBlur:true)
+                    //     ->label('Discount Amount')
+                    //     ->afterStateUpdated(function ($state, callable $set, callable $get)
+                    //     {
+                    //         if($get('total_cost') == null || $get('total_cost') == 0){
+                    //             $set('discount_amount', null);
+                    //             $set('net_amount', null);
+                    //         }
+                    //         else{
+                    //             $set('net_amount', $get('total_cost') - $state);
+                    //             // $set('discount_amount', $state / 100 * $get('total_cost'));
+                    //         }
+                    //     }),
 
                     TextInput::make('discount_amount')
-                        ->numeric()
-                        ->inputMode('decimal')
-                        ->live(onBlur:true)
-                        ->label('Discount Amount')
-                        ->afterStateUpdated(function ($state, callable $set, callable $get)
-                        {
-                            if($get('total_cost') == null || $get('total_cost') == 0){
-                                $set('discount_amount', null);
-                                $set('net_amount', null);
-                            }
-                            else{
-                                $set('net_amount', $get('total_cost') - $state);
-                                // $set('discount_amount', $state / 100 * $get('total_cost'));
-                            }
-                        }),
+                    ->label('Discount Amount')
+                    ->readonly(),
 
                     TextInput::make('net_amount')
                         ->numeric()
@@ -179,7 +264,7 @@ class PurchaseOrderDetailRelationManager extends RelationManager
                     ->label('Unit of Measurement')
                     ->sortable(),
                 TextColumn::make('tag_weight')
-                    ->label('Weight (kg)'),
+                    ->label('Total Weight (kg)'),
 
                 TextColumn::make('quantity')
                     ->label('Quantity')
@@ -228,12 +313,16 @@ class PurchaseOrderDetailRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                 ->label('Add Product')
+                ->createAnother(false)
+                ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft')
                 ->modalHeading('Purchase Order Detail'),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft'),
                 DeleteAction::make()
                     ->modalHeading('Delete Product')
+                    ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft')
                     ->modalDescription(fn ($record) =>
                         "Are you sure you want to delete {$record->product->product_description}?"
                     )

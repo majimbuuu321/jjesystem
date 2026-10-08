@@ -42,7 +42,7 @@ class ProductsForm
                         }
                             return strtoupper($state);
                     }),
-                     Grid::make(2)
+                     Grid::make(3)
                          ->schema([
                             Select::make('product_category_id')
                                 ->label('Product Category')
@@ -57,15 +57,8 @@ class ProductsForm
                                 ->maxDate(now())
                                 ->default(now())
                                 ->minDate(now()->subYears(150)),
-                         ]),
-                    
-                     Grid::make(2)
-                         ->schema([
-                            TextInput::make('unit_cost')
-                                ->numeric()
-                                ->default(null)
-                                ->prefix('₱'),
-                            TextInput::make('unit_price')
+
+                                TextInput::make('unit_cost')
                                 ->numeric()
                                 ->default(null)
                                 ->prefix('₱'),

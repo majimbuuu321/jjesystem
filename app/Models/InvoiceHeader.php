@@ -20,6 +20,7 @@ class InvoiceHeader extends Model
         'payment_terms_id',
         'total_amount',
         'balance_amount',
+        'paid_amount',
         'status',
         'created_by',
         'updated_by',
@@ -57,4 +58,10 @@ class InvoiceHeader extends Model
     {
         return $this->belongsTo(InvoiceType::class, 'invoice_type_id', 'id');
     }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(InvoicePaymentLogs::class);
+    }
+
 }

@@ -25,7 +25,6 @@ class PurchaseOrderResource extends Resource
     protected static ?string $label = 'Purchase Order';
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $recordTitleAttribute = 'PurchaseOrderHeader';
 
     public static function form(Schema $schema): Schema
     {

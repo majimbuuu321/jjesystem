@@ -35,5 +35,14 @@ class Products extends Model
         return $this->hasMany(UnitCostHistory::class);
     }
 
+    public function category()
+    {
+        return $this->belongsTo(
+            ProductCategory::class,
+            'product_category_id',
+            'id'
+        );
+    }
+
     
 }

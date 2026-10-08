@@ -11,7 +11,7 @@ class CreateProducts extends CreateRecord
 {
     protected static string $resource = ProductsResource::class;
 
-
+    protected static bool $canCreateAnother = false;
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by'] = auth()->id();
@@ -31,13 +31,28 @@ class CreateProducts extends CreateRecord
         ]);
 
         $priceCodes = PriceCode::where('status', 'Active')->get();
+        // foreach ($priceCodes as $priceCode) {
+        //     PricePerCode::create([
+        //         'products_id' => $this->record->id,
+        //         'price_code_id' => $priceCode->id,
+        //         'status' => 'Active',
+        //         'created_by' => auth()->id(),
+        //         'created_at' => now()
+        //     ]);
+        // }
         foreach ($priceCodes as $priceCode) {
             PricePerCode::create([
-                'products_id' => $this->record->id,
+                'products_id'   => $this->record->id,
                 'price_code_id' => $priceCode->id,
-                'status' => 'Active',
-                'created_by' => auth()->id(),
-                'created_at' => now()
+                'price_date' => strtoupper($priceCode->price_code) === 'COGS'
+                    ? $this->record->price_date
+                    : null,
+                'unit_price'     => strtoupper($priceCode->price_code) === 'COGS'
+                    ? $this->record->unit_cost
+                    : null,
+                'status'        => 'Active',
+                'created_by'    => auth()->id(),
+                'created_at'    => now(),
             ]);
         }
         

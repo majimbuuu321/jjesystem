@@ -12,6 +12,8 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Hidden;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 class InvoiceForm
 {
     public static function configure(Schema $schema): Schema
@@ -26,41 +28,25 @@ class InvoiceForm
                             TextInput::make('transaction_no')
                                 ->label('Transaction No.')
                                 ->default(function () {
-                                       $year = now()->year;
+                                    $year = now()->year;
+                                    $prefix = "INV-{$year}-";
 
-                                        $lastPo = InvoiceHeader::where(
-                                            'order_no',
-                                            'like',
-                                            "INV-{$year}-%"
-                                        )
-                                        ->orderByDesc('id')
-                                        ->first();
+                                    $lastInvoice = InvoiceHeader::where('transaction_no', 'like', "{$prefix}%")
+                                        ->get()
+                                        ->map(function ($invoice) use ($prefix) {
+                                            return (int) str_replace($prefix, '', $invoice->order_no);
+                                        })
+                                        ->max();
 
-                                        $counter = $lastPo
-                                            ? ((int) str_replace(
-                                                "INV-{$year}-",
-                                                '',
-                                                $lastPo->order_no
-                                            )) + 1
-                                            : 1;
+                                    $counter = ($lastInvoice ?? 0) + 1;
 
-                                        return "INV-{$year}-{$counter}";
-                                    // $year = now()->year;
-                            
-                                    // $lastPo = PurchaseOrderHeader::where('purchase_order_no', 'like', "PO-{$year}-%")
-                                    //     ->orderByDesc('id')
-                                    //     ->first();
-                            
-                                    // $counter = $lastPo
-                                    //     ? ((int) str_replace("PO-{$year}-", '', $lastPo->po_number)) + 1
-                                    //     : 1;
-                            
-                                    // return "PO-{$year}-{$counter}";
+                                    return "{$prefix}{$counter}";
                                 })
                                 ->readOnly()
                                 ->required(),
                             TextInput::make('order_no')
                                 ->label('Order No.')
+                                ->unique(ignoreRecord: true)
                                 ->required(),
 
 
@@ -138,6 +124,18 @@ class InvoiceForm
                                     ->preload()
                                     ->label('Payment Terms')
                                     ->loadingMessage('Loading Payment Terms...'),
+
+                            // Select::make('status')
+                            // ->label('Status')
+                            // ->searchable()
+                            // ->options([
+                            //     'Partially Paid' => 'Partially Paid',
+                            //     'Paid' => 'Paid',
+                            //     'Cancelled' => 'Cancelled',
+                            // ])
+                            // ->hidden(function (callable $get) {
+                            //     return in_array($get('status'), ['Draft']);
+                            // })
 
                         ]),
                 ])->columnSpanFull(),

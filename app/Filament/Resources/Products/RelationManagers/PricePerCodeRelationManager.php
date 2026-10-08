@@ -36,6 +36,7 @@ class PricePerCodeRelationManager extends RelationManager
                             DatePicker::make('price_date')
                                 ->label('Price Date')
                                 ->required()
+                                ->default(now())
                                 ->maxDate(now()),
                          ]),
                          Grid::make(2)

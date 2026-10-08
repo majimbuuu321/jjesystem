@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Filament\Resources\Invoices\Tables;
-
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -27,8 +27,10 @@ class InvoicesTable
                     ->badge()
                     ->label('Status')
                     ->color(fn (string $state): string => match ($state) {
-                        'Draft' => 'warning',
-                        'Posted' => 'success',
+                        'Draft' => 'danger',
+                        'Posted' => 'primary',
+                        'Partially Paid' => 'warning',
+                        'Paid' => 'success',
                     }),
             ])
             ->filters([
@@ -36,6 +38,15 @@ class InvoicesTable
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('print')
+                ->label('Print')
+                ->color('warning')
+                ->icon('heroicon-o-printer')
+                ->hidden(fn ($record) => in_array($record->status, ['Draft', 'Posted']))
+                ->url(fn ($record) => route('invoice.print', [
+                    'invoice' => $record->id,
+                ]))
+                ->openUrlInNewTab(),
             ])
             ->toolbarActions([
                 

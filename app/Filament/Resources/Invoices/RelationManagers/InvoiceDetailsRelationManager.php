@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Invoices\RelationManagers;
 use App\Models\PricePerCode;
 use App\Models\Products;
 use App\Models\InventoryPerWarehouse;
+use App\Models\UnitOfMeasurement;
 use Filament\Actions\AssociateAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -23,7 +24,10 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
 use App\Rules\QuantityDoesNotExceedStock;
+use Filament\Forms\Components\Hidden;
 class InvoiceDetailsRelationManager extends RelationManager
 {
     protected static string $relationship = 'InvoiceDetails';
@@ -32,242 +36,277 @@ class InvoiceDetailsRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                // Select::make('product_id')
-                // ->label('Product')
-                // ->required()
-                // ->searchable()
-                // ->preload()
-                // ->options(function () {
-                //     $invoice = $this->getOwnerRecord();
+                  Section::make()
+                    ->schema([
+                         Grid::make(2)
+                         ->schema([
+                                Select::make('products_id')
+                                    ->options(function (RelationManager $livewire, callable $get) {
+                                        $header = $livewire->ownerRecord; // parent record
+                                        $warehouseId = $header->warehouse_id;
+                                        return InventoryPerWarehouse::where('inventory_per_warehouse.warehouse_id', $warehouseId)
+                                            ->join('products', 'inventory_per_warehouse.product_id', '=', 'products.id')
+                                            ->pluck('products.product_description', 'products.id');
+                                    })
+                                    ->required()
+                                    ->searchable()
+                                    ->label('Product')
+                                    ->loadingMessage('Loading Products...')
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set, RelationManager $livewire) {
+                                        $product = Products::find($state);
+                                        if ($product) {
+                                            $headerRecord = $livewire->ownerRecord;
+                                            $inventoryPerWarehouse = InventoryPerWarehouse::where('warehouse_id', $headerRecord->warehouse_id)->where('product_id', $product->id);
+                                            $set('stock_in_warehouse', $inventoryPerWarehouse->first()->quantity);
+                                            $invoice = $this->getOwnerRecord();
+                                            // Get price code from Invoice Header -> Customer
+                                            $priceCodeId = $invoice->customer?->price_code_id;
 
-                //     if (! $invoice?->warehouse_id) {
-                //         return [];
-                //     }
-                //     $productIds = InventoryPerWarehouse::query()
-                //         ->where('warehouse_id', $invoice->warehouse_id)
-                //         ->where('quantity', '>', 0)
-                //         ->pluck('product_id');
+                                            $price = PricePerCode::query()
+                                                ->where('products_id', $state)
+                                                ->where('price_code_id', $priceCodeId)
+                                                ->first();
+                                            
+                                            $uom = UnitOfMeasurement::find($price->units_id);
 
-                //     return Products::query()
-                //         ->whereIn('id', $productIds)
-                //         ->orderBy('product_description')
-                //         ->pluck('product_description', 'id')
-                //         ->toArray();
-                // })
-                // ->live(),
-                Select::make('products_id')
-                    ->options(function (RelationManager $livewire, callable $get) {
-                        $header = $livewire->ownerRecord; // parent record
-                        $warehouseId = $header->warehouse_id;
-                        // $transferFrom = InventoryType::where('id', $header->first()->inventory_type_id)->select('inventory_from')->get();
+                                            $set('tag_weight', $product->weight);
+                                            $set('price', $price->unit_price ?? 0);
+                                            $set('unit_code', $uom?->unit_code);
+                                            $set('uom_id', $price->units_id);
+                                        } else {
+                                            $set('stock_in_warehouse', null);
+                                            $set('tag_weight', null);
+                                            $set('net_weight', null);
+                                            $set('quantity', null);
+                                            $set('gross_amount', null);
+                                            $set('price', null);
+                                            $set('net_amount', null);
+                                            $set('discount_rate', null);
+                                            $set('discount_amount', null);
+                                            $set('remarks', null);
+                                            $set('unit_code', null);
+                                            $set('uom_id', null);
+                                        }
+                                        
+                                    }),
 
-                        // if($transferFrom = "WAREHOUSE")
-                        // {
-                        //     $ware   
-                        // }
-                        // $warehouseId = $header->warehouse_id;
-                        // dd($header);
-                        return InventoryPerWarehouse::where('inventory_per_warehouse.warehouse_id', $warehouseId)
-                            ->join('products', 'inventory_per_warehouse.product_id', '=', 'products.id')
-                            ->pluck('products.product_description', 'products.id');
-                    })
-                    ->required()
-                    ->searchable()
-                    ->label('Product')
-                    ->loadingMessage('Loading Products...')
-                    ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set, RelationManager $livewire) {
-                        $product = Products::find($state);
-                        if ($product) {
-                            $headerRecord = $livewire->ownerRecord;
-                            $inventoryPerWarehouse = InventoryPerWarehouse::where('warehouse_id', $headerRecord->warehouse_id)->where('product_id', $product->id);
-                            $set('stock_in_warehouse', $inventoryPerWarehouse->first()->quantity);
-                            $invoice = $this->getOwnerRecord();
-                             // Get price code from Invoice Header -> Customer
-                            $priceCodeId = $invoice->customer?->price_code_id;
+                                
 
-                             $price = PricePerCode::query()
-                                ->where('products_id', $state)
-                                ->where('price_code_id', $priceCodeId)
-                                ->value('unit_price');
+                                TextInput::make('stock_in_warehouse')
+                                    ->label('Available Stock')
+                                    ->numeric()
+                                    ->readOnly()
+                                    ->dehydrated(false),
 
-                            $set('price', $price ?? 0);
-                        } else {
-                            $set('stock_in_warehouse', null);
-                        }
-                        
-                    }),
+                                
+                         ]),
 
-                TextInput::make('stock_in_warehouse')
-                ->label('Available Stock')
-                ->numeric()
-                ->readOnly()
-                ->dehydrated(false),
-               
+                         Grid::make(3)
+                         ->schema([
+                                Select::make('price_code_id')
+                                    ->label('Price Code')
+                                    ->relationship('priceCode', 'price_code')
+                                    ->default(function () {
+                                        $invoice = $this->getOwnerRecord();
 
-                Select::make('price_code_id')
-                ->label('Price Code')
-                ->relationship('priceCode', 'price_code')
-                ->default(function () {
-                    $invoice = $this->getOwnerRecord();
+                                        return $invoice?->customer?->price_code_id;
+                                    })
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated(),
 
-                    return $invoice?->customer?->price_code_id;
-                })
-                ->required()
-                ->disabled()
-                ->dehydrated(),
+                                TextInput::make('quantity')
+                                    ->required()
+                                    ->numeric()
+                                    ->live(onBlur: true)
+                                    ->minValue(0)
+                                    ->label('Quantity')
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
 
-                 TextInput::make('quantity')
-                    ->required()
-                    ->numeric()
-                    ->live(onBlur: true)
-                    ->minValue(0)
-                    ->label('Quantity')
-                    ->afterStateUpdated(function ($state, callable $set, callable $get)
-                        {
-                            $stockInWarehouse = $get('stock_in_warehouse');
+                                        $stockInWarehouse = (float) ($get('stock_in_warehouse') ?? 0);
 
-                            if($state <= $stockInWarehouse)
-                            {
-                                if($get('price') == null || $get('price') == 0){
-                                $set('price', null);
-                                }
-                                else{
-                                    $set('gross_amount', $state * $get('price'));
-                                }
-                            }
-                            // else{
-                            //     if($get('unit_cost') == null || $get('unit_cost') == 0){
-                            //     $set('unit_cost', null);
-                            //     }
-                            //     else{
-                            //         $set('gross_amount', $state * $get('unit_cost'));
-                            //     }
-                            // }
+                                        if ($state <= $stockInWarehouse) {
 
-                            //   if($get('unit_cost') == null || $get('unit_cost') == 0){
-                            //     $set('unit_cost', null);
-                            //     }
-                            //     else{
-                            //         $set('gross_amount', $state * $get('unit_cost'));
-                            //     }
-                    }) 
-                    ->rules([
-                            fn (Get $get) => new QuantityDoesNotExceedStock($get('stock_in_warehouse') ?? 0),
-                        ]),
+                                            $price = (float) ($get('price') ?? 0);
 
-                TextInput::make('price')
-                    ->numeric()
-                    ->readonly(),
+                                            // Gross Amount
+                                            if ($price <= 0) {
+                                                $set('price', null);
+                                                $set('gross_amount', null);
+                                                $set('net_amount', null);
+                                            } else {
 
-                 TextInput::make('gross_amount')
-                    ->readonly(),
+                                                $grossAmount = round($state * $price, 2);
 
-                TextInput::make('discount_rate')
-                    ->label('Discount')
-                    ->placeholder('e.g. -100-10% or -10%-5%')
-                    ->live()
-                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                $set('gross_amount', $grossAmount);
 
-                        $grossAmount = (float) ($get('gross_amount') ?? 0);
+                                                // Default Net Amount = Gross Amount
+                                                $netAmount = $grossAmount;
 
-                        if (blank($state)) {
-                            $set('discount_amount', 0);
-                            $set('net_amount', $grossAmount);
+                                                $discountRate = trim((string) ($get('discount_rate') ?? ''));
 
-                            return;
-                        }
+                                                if (! blank($discountRate)) {
 
-                        $expression = trim($state);
+                                                    $amount = $grossAmount;
 
-                        // Split by "-"
-                        $discounts = preg_split('/\s*-\s*/', ltrim($expression, '-'));
+                                                    $discounts = preg_split(
+                                                        '/\s*-\s*/',
+                                                        ltrim($discountRate, '-')
+                                                    );
 
-                        $amount = $grossAmount;
+                                                    foreach ($discounts as $discount) {
 
-                        foreach ($discounts as $discount) {
+                                                        $discount = trim($discount);
 
-                            $discount = trim($discount);
+                                                        if ($discount === '') {
+                                                            continue;
+                                                        }
 
-                            if ($discount === '') {
-                                continue;
-                            }
+                                                        if (str_ends_with($discount, '%')) {
 
-                            // Percentage discount
-                            if (str_ends_with($discount, '%')) {
+                                                            $rate = (float) str_replace('%', '', $discount);
 
-                                $rate = (float) str_replace('%', '', $discount);
+                                                            $discountAmount = $amount * ($rate / 100);
 
-                                $discountAmount = $amount * ($rate / 100);
+                                                        } else {
 
-                            } else {
+                                                            $discountAmount = (float) $discount;
+                                                        }
 
-                                // Fixed amount discount
-                                $discountAmount = (float) $discount;
-                            }
+                                                        $amount -= $discountAmount;
+                                                    }
 
-                            // Apply discount
-                            $amount -= $discountAmount;
-                        }
+                                                    $netAmount = round($amount, 2);
+                                                }
 
-                        $discountAmount = $grossAmount - $amount;
+                                                $set('net_amount', $netAmount);
+                                            }
 
-                        $set('discount_amount', $discountAmount);
-                        $set('net_amount', $amount);
-                    }),
+                                            // Net Weight
+                                            $tagWeight = (float) ($get('tag_weight') ?? 0);
 
-                TextInput::make('discount_amount')
-                    ->readonly(),
-                // TextInput::make('discount_rate')
-                //     ->label('Discount Rate')
-                //     ->placeholder('e.g. .5 .1 or .5 5%')
-                //     ->live()
-                //     ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                            if ($tagWeight <= 0) {
+                                                $set('tag_weight', null);
+                                                $set('net_weight', null);
+                                            } else {
+                                                $set(
+                                                    'net_weight',
+                                                    round($state * $tagWeight, 2)
+                                                );
+                                            }
+                                        }
+                                    })
+                                    ->rules([
+                                        fn (Get $get) => new QuantityDoesNotExceedStock(
+                                            $get('stock_in_warehouse') ?? 0
+                                        ),
+                                    ]),
 
-                //         if (blank($state)) {
-                //             $set('discount_amount', 0);
-                //             return;
-                //         }
 
-                //         // Split by spaces
-                //         $discounts = preg_split('/\s+/', trim($state));
+                                Hidden::make('uom_id')
+                                ->dehydrated(),
+                                TextInput::make('unit_code')
+                                    ->label('Unit of Measurement')
+                                    ->readonly(),
+                         ]),
 
-                //         $total = 0;
+                         Grid::make(2)
+                         ->schema([
+                                TextInput::make('tag_weight')
+                                    ->label('Weight (kg)')
+                                    ->readonly(),
 
-                //         foreach ($discounts as $discount) {
-                //             $discount = trim($discount);
+                                TextInput::make('net_weight')
+                                    ->label('Total Weight (kg)')
+                                    ->readonly(),
 
-                //             // Remove % sign
-                //             $discount = str_replace('%', '', $discount);
+                               
+                         ]),
 
-                //             if (is_numeric($discount)) {
-                //                 $total += (float) $discount;
-                //             }
-                //         }
+                         Grid::make(2)
+                         ->schema([
+                                TextInput::make('price')
+                                    ->numeric()
+                                    ->readonly(),
 
-                //         $amount = (float) ($get('gross_amount') ?? 0);
+                                TextInput::make('gross_amount')
+                                    ->label('Gross Amount')
+                                    ->readonly(),
 
-                //         // Apply discounts sequentially
-                //         foreach ($discounts as $discount) {
-                //             $discount = str_replace('%', '', trim($discount));
+                               
+                         ]),
 
-                //             if (is_numeric($discount)) {
-                //                 $rate = (float) $discount / 100;
-                //                 $amount -= $amount * $rate;
-                //             }
-                //         }
+                          Grid::make(3)
+                         ->schema([
+                                TextInput::make('discount_rate')
+                                ->label('Discount')
+                                ->placeholder('e.g. -100-10% or -10%-5%')
+                                ->live()
+                                ->afterStateUpdated(function ($state, Get $get, Set $set) {
 
-                //         $set('discount_amount', $total);
-                //         $set('net_amount', $amount);
-                //     }),
+                                    $grossAmount = (float) ($get('gross_amount') ?? 0);
 
-               
+                                    if (blank($state)) {
+                                        $set('discount_amount', 0);
+                                        $set('net_amount', $grossAmount);
 
-                TextInput::make('net_amount')
-                    ->readonly(),
+                                        return;
+                                    }
 
-                Textarea::make('remarks')
-                    ->columnSpanFull(),
+                                    $expression = trim($state);
+
+                                    // Split by "-"
+                                    $discounts = preg_split('/\s*-\s*/', ltrim($expression, '-'));
+
+                                    $amount = $grossAmount;
+
+                                    foreach ($discounts as $discount) {
+
+                                        $discount = trim($discount);
+
+                                        if ($discount === '') {
+                                            continue;
+                                        }
+
+                                        // Percentage discount
+                                        if (str_ends_with($discount, '%')) {
+
+                                            $rate = (float) str_replace('%', '', $discount);
+
+                                            $discountAmount = $amount * ($rate / 100);
+
+                                        } else {
+
+                                            // Fixed amount discount
+                                            $discountAmount = (float) $discount;
+                                        }
+
+                                        // Apply discount
+                                        $amount -= $discountAmount;
+                                    }
+
+                                    $discountAmount = $grossAmount - $amount;
+
+                                    $set('discount_amount', $discountAmount);
+                                    $set('net_amount', $amount);
+                                }),
+
+                                TextInput::make('discount_amount')
+                                    ->label('Discount Amount')
+                                    ->readonly(),
+
+                                TextInput::make('net_amount')
+                                    ->label('Net Amount')
+                                    ->readonly(),
+                         ]),
+                         Grid::make(1)
+                         ->schema([
+                            Textarea::make('remarks'),
+                         ])
+
+                    ])->columnSpanFull()
+                
             ]);
     }
 
@@ -293,9 +332,16 @@ class InvoiceDetailsRelationManager extends RelationManager
                     ->label('Qty')
                     ->sortable(),
 
+                TextColumn::make('units.unit_code')
+                    ->label('UOM')
+                    ->sortable(),
+
                 TextColumn::make('price')
                     ->label('Price')
                     ->sortable(),
+                
+                TextColumn::make('net_weight')
+                    ->label('Total Weight (kg)'),
 
                 TextColumn::make('gross_amount')
                     ->label('Gross Amount')
@@ -321,8 +367,6 @@ class InvoiceDetailsRelationManager extends RelationManager
                     ->label('Total Net Amount')
                     ->money('PHP', true)
                 ),
-
-
             ])
             ->filters([
                 //
@@ -330,12 +374,44 @@ class InvoiceDetailsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                 ->label('Add Product')
+                ->createAnother(false)
+                ->after(function ($record) {
+                    $invoice = $this->ownerRecord;
+
+                    $totalAmount = $invoice->InvoiceDetails()->sum('net_amount');
+
+                    $invoice->update([
+                        'total_amount' => $totalAmount,
+                        'balance_amount' => $totalAmount - ($invoice->paid_amount ?? 0),
+                    ]);
+                })
                 ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft'),
             ])
             ->recordActions([
                 EditAction::make()
+                ->after(function () {
+                    $invoice = $this->ownerRecord;
+
+                    $totalAmount = $invoice->InvoiceDetails()->sum('net_amount');
+
+                    $invoice->update([
+                        'total_amount' => $totalAmount,
+                        'balance_amount' => $totalAmount - ($invoice->paid_amount ?? 0),
+                        
+                    ]);
+                })
                 ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft'),
                 DeleteAction::make()
+                ->after(function () {
+                    $invoice = $this->ownerRecord;
+
+                    $totalAmount = $invoice->InvoiceDetails()->sum('net_amount');
+
+                    $invoice->update([
+                        'total_amount' => $totalAmount,
+                        'balance_amount' => $totalAmount - ($invoice->paid_amount ?? 0),
+                    ]);
+                })
                 ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft'),
             ])
             ->toolbarActions([

@@ -17,6 +17,8 @@ class StockMovements extends Model
         'movement_type',
         'quantity',
         'reference_note',
+        'module',
+        'status',
         'created_by',
         'created_at',
     ];

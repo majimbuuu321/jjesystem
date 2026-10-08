@@ -38,7 +38,7 @@ class InventoryDetailRelationManager extends RelationManager
             ->components([
                  Section::make()
                     ->schema([
-                        Grid::make(1)
+                        Grid::make(2)
                             ->schema([
                                     Select::make('products_id')
                                         ->options(function (RelationManager $livewire, callable $get) {
@@ -62,6 +62,12 @@ class InventoryDetailRelationManager extends RelationManager
                                         ->loadingMessage('Loading Products...')
                                         ->reactive()
                                         ->afterStateUpdated(function ($state, callable $set, RelationManager $livewire) {
+
+                                             // Reset quantity whenever product changes
+                                            $set('quantity', null);
+                                            $set('weight', null);
+                                            $set('gross_amount', null);
+
                                             $product = Products::find($state);
                                             if ($product) {
                                                 $headerRecord = $livewire->ownerRecord;
@@ -73,40 +79,23 @@ class InventoryDetailRelationManager extends RelationManager
                                                 $set('unit_of_measurement', $inventoryPerWarehouse->first()->unit_code);
                                                 $set('stock_in_warehouse', $inventoryPerWarehouse->first()->quantity);
                                                 $set('unit_cost', $product->unit_cost);
-                                                $set('weight', $product->weight);
+                                                $set('tag_weight', $product->weight);
                                             } else {
                                                 $set('unit_cost', null);
-                                                $set('weight', null);
+                                                $set('tag_weight', null);
                                                 $set('uom_id', null);
                                                 $set('unit_of_measurement', null);
                                                 $set('stock_in_warehouse', null);
+                                                $set('weight', null);
+                                                $set('gross_amount', null);
                                             }
                                             
                                         }),
 
-                            ]),
-                            Grid::make(3)
-                            ->schema([
-
-                                TextInput::make('stock_in_warehouse')
+                                        TextInput::make('stock_in_warehouse')
                                 ->label('Stock in Warehouse')
                                 ->readonly(),
 
-
-                                Hidden::make('uom_id'),
-
-                                TextInput::make('unit_of_measurement')
-                                ->label('Unit of Measurement')
-                                ->readonly(),
-
-                                TextInput::make('weight')
-                                ->numeric()
-                                ->inputMode('decimal')
-                                ->required()
-                                ->readonly()
-                                ->label('Weight (kg)'),
-
-                                    
                             ]),
                             Grid::make(3)
                             ->schema([
@@ -127,7 +116,17 @@ class InventoryDetailRelationManager extends RelationManager
                                             $set('unit_cost', null);
                                             }
                                             else{
-                                                $set('gross_amount', $state * $get('unit_cost'));
+                                                $set('gross_amount', round($state * $get('unit_cost'),2));
+                                            }
+                                            // Calculate tag weight
+                                            if ($get('tag_weight') == null || $get('tag_weight') == 0) {
+                                                $set('tag_weight', null);
+                                                $set('weight', null);
+                                            } else {
+                                                $set(
+                                                    'weight',
+                                                    $state * $get('tag_weight')
+                                                );
                                             }
                                         }
                                         // else{
@@ -149,6 +148,38 @@ class InventoryDetailRelationManager extends RelationManager
                                 ->rules([
                                         fn (Get $get) => new QuantityDoesNotExceedStock($get('stock_in_warehouse') ?? 0),
                                     ]),
+
+                                Hidden::make('uom_id'),
+
+                                TextInput::make('unit_of_measurement')
+                                ->label('Unit of Measurement')
+                                ->readonly(),
+
+
+
+
+                                TextInput::make('tag_weight')
+                                ->numeric()
+                                ->inputMode('decimal')
+                                ->required()
+                                ->readonly()
+                                ->label('Weight (kg)')
+                                ->afterStateHydrated(function (TextInput $component, $state, $record) {
+                                    if (blank($state)) {
+                                        $component->state($record?->product?->weight);
+                                    }
+                                }),
+                                    
+                            ]),
+                            Grid::make(3)
+                            ->schema([
+
+                                 TextInput::make('weight')
+                                ->numeric()
+                                ->inputMode('decimal')
+                                ->required()
+                                ->readonly()
+                                ->label('Total Weight (kg)'),
 
                                 TextInput::make('unit_cost')
                                     ->numeric()
@@ -176,7 +207,13 @@ class InventoryDetailRelationManager extends RelationManager
                             Grid::make(1)
                             ->schema([
                                 TextArea::make('remarks')
-                                    ->label('Remarks'),
+                                    ->label('Remarks')
+                                    ->dehydrateStateUsing(function (?string $state): ?string {
+                                        if ($state === null) {
+                                                return '';
+                                                }
+                                            return strtoupper($state);
+                                    }),
                             ])
                     ])->columnSpanFull()
 
@@ -228,6 +265,8 @@ class InventoryDetailRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                 ->label('Add Inventory')
+                ->createAnother(false)
+                ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft')
                 ->modalHeading('Inventory Detail'),
             ])
             ->recordActions([
@@ -248,8 +287,10 @@ class InventoryDetailRelationManager extends RelationManager
                     $data['unit_of_measurement'] = $uomName->first()->unit_code;
                     
                     return $data;
-                }),
-                DeleteAction::make(),
+                })
+                ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft'),
+                DeleteAction::make()
+                ->hidden(fn ($livewire) => $livewire->ownerRecord->status !== 'Draft'),
             ])
             ->toolbarActions([
               

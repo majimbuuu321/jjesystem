@@ -11,6 +11,7 @@ use App\Models\Region;
 use App\Models\Province;
 use App\Models\City;
 use App\Models\Barangay;
+use App\Models\BusinessChannel;
 use BackedEnum;
 use UnitEnum;
 use Filament\Actions\BulkActionGroup;
@@ -54,7 +55,6 @@ class CustomersResource extends Resource
                                             return strtoupper($state);
                                     }),
                                 TextInput::make('middle_name')
-                                    ->required()
                                     ->label('Middle Name')
                                     ->dehydrateStateUsing(function (?string $state): ?string {
                                         if ($state === null) {
@@ -72,7 +72,7 @@ class CustomersResource extends Resource
                                             return strtoupper($state);
                                     }),
                         ]),
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
                                 Select::make('employee_id')
                                     ->required()
@@ -94,6 +94,14 @@ class CustomersResource extends Resource
                                         }
                                             return strtoupper($state);
                                     }),
+                                
+                                Select::make('business_channel_id')
+                                    ->label('Business Channel')
+                                    ->preload()
+                                    ->options(BusinessChannel::where('status', 'Active')->pluck('business_channel_name', 'id'))
+                                    ->searchable()
+                                    ->required()
+                                    ->loadingMessage('Loading Price Code...'),
                                 
                             ]),
                         

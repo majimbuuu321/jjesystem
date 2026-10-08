@@ -17,5 +17,20 @@ class InventoryPerWarehouse extends Model
         'updated_at',
     ];
 
+
+    public function product()
+    {
+        return $this->belongsTo(Products::class, 'product_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
     
 }

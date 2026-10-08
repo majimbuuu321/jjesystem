@@ -15,6 +15,7 @@ class Customers extends Model
         'employee_id',
         'price_code_id',
         'route_id',
+        'business_channel_id',
         'store_name',
         'street_unit_building_no',
         'region_code',

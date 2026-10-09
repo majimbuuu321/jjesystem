@@ -249,7 +249,7 @@ class InvoiceDetailsRelationManager extends RelationManager
 
                                     if (blank($state)) {
                                         $set('discount_amount', 0);
-                                        $set('net_amount', $grossAmount);
+                                        $set('net_amount', round($grossAmount,2));
 
                                         return;
                                     }
@@ -288,8 +288,8 @@ class InvoiceDetailsRelationManager extends RelationManager
 
                                     $discountAmount = $grossAmount - $amount;
 
-                                    $set('discount_amount', $discountAmount);
-                                    $set('net_amount', $amount);
+                                    $set('discount_amount', round($discountAmount, 2));
+                                    $set('net_amount', round($amount, 2));
                                 }),
 
                                 TextInput::make('discount_amount')

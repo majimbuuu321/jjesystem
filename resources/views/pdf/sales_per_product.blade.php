@@ -225,7 +225,7 @@
                         );
 
                         $amount = (float) (
-                            $detail->amount
+                            $detail->net_amount
                             ?? (
                                 ($detail->quantity ?? 0)
                                 * ($detail->price ?? 0)
@@ -286,7 +286,7 @@
                         {{ number_format(
                             $details->sum(function ($detail) {
                                 return (float) (
-                                    $detail->amount
+                                    $detail->net_amount
                                     ?? (
                                         ($detail->quantity ?? 0)
                                         * ($detail->price ?? 0)
@@ -415,7 +415,7 @@
                         );
 
                         $amount = (float) (
-                            $detail->amount
+                            $detail->net_amount
                             ?? (
                                 ($detail->quantity ?? 0)
                                 * ($detail->price ?? 0)
@@ -476,7 +476,7 @@
                         {{ number_format(
                             $details->sum(function ($detail) {
                                 return (float) (
-                                    $detail->amount
+                                    $detail->net_amount
                                     ?? (
                                         ($detail->quantity ?? 0)
                                         * ($detail->price ?? 0)

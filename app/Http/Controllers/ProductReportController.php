@@ -138,7 +138,7 @@ class ProductReportController extends Controller
         $cashTotal = $cashDetails->sum(function ($detail) {
 
             return (float) (
-                $detail->amount
+                $detail->net_amount
                 ?? (
                     ($detail->quantity ?? 0)
                     * ($detail->price ?? 0)
@@ -149,7 +149,7 @@ class ProductReportController extends Controller
         $chargeTotal = $chargeDetails->sum(function ($detail) {
 
             return (float) (
-                $detail->amount
+                $detail->net_amount
                 ?? (
                     ($detail->quantity ?? 0)
                     * ($detail->price ?? 0)
